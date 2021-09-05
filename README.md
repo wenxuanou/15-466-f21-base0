@@ -1,8 +1,8 @@
-# (TODO: your game's title)
+# Raging Zeus
 
-Author: (TODO: your name)
+Author: Wenxuan Ou
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: You are Zeus who just lost a large amount of money in bitcoin, so you decide to throw thunderbolt and destroy some buildings to release your anger. 
 
 Screen Shot:
 
@@ -10,7 +10,7 @@ Screen Shot:
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+Move mouse to reposition, click to throw thunderbolt. 
 
 Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
 
