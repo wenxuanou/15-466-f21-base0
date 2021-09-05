@@ -4,6 +4,10 @@
 //The 'PongMode' mode plays the game:
 #include "PongMode.hpp"
 
+//My own game mode:
+#include "ZeusMode.hpp"
+
+
 //GL.hpp will include a non-namespace-polluting set of opengl prototypes:
 #include "GL.hpp"
 
@@ -84,11 +88,12 @@ int main(int argc, char **argv) {
 	}
 
 	//Hide mouse cursor (note: showing can be useful for debugging):
-	//SDL_ShowCursor(SDL_DISABLE);
+	SDL_ShowCursor(SDL_DISABLE);
 
 	//------------ create game mode + make current --------------
-	Mode::set_current(std::make_shared< PongMode >());
-
+	Mode::set_current(std::make_shared< PongMode >());          // TODO: change this to my own game mode
+    // Mode::set_current(std::make_shared< ZeusMode >());
+        
 	//------------ main loop ------------
 
 	//this inline function will be called whenever the window is resized,
@@ -153,7 +158,7 @@ int main(int argc, char **argv) {
 			//lag to avoid spiral of death:
 			elapsed = std::min(0.1f, elapsed);
 
-			Mode::current->update(elapsed);
+			Mode::current->update(elapsed);         // game update here
 			if (!Mode::current) break;
 		}
 
