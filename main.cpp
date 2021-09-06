@@ -91,8 +91,8 @@ int main(int argc, char **argv) {
 	SDL_ShowCursor(SDL_DISABLE);
 
 	//------------ create game mode + make current --------------
-	Mode::set_current(std::make_shared< PongMode >());          // TODO: change this to my own game mode
-    // Mode::set_current(std::make_shared< ZeusMode >());
+	//Mode::set_current(std::make_shared< PongMode >());          // TODO: change this to my own game mode
+    Mode::set_current(std::make_shared< ZeusMode >());
         
 	//------------ main loop ------------
 

@@ -12,6 +12,9 @@
 //for glm::value_ptr() :
 #include <glm/gtc/type_ptr.hpp>
 
+#include <random>
+
+#include <assert.h> //prevent error
 
 ZeusMode::ZeusMode() {
     //set up trail as if bullet has been here for 'forever':
@@ -128,23 +131,156 @@ bool ZeusMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
             (evt.motion.y + 0.5f) / window_size.y *-2.0f + 1.0f
         );
         cloud.x = (clip_to_court * glm::vec3(clip_mouse, 1.0f)).x;
+        
+        //if not fire, bullet move with cloud
+        if(!bullet_fired){
+            bullet.x = cloud.x;
+        }
+    }
+    
+    if(evt.type == SDL_MOUSEBUTTONUP){
+        //fire bullet
+        bullet_fired = true;
     }
 
     return false;
 }
 
 void ZeusMode::update(float elapsed){
-    //TODO: implement this
+    
+    static std::mt19937 mt;     //mersenne twister pseudo-random number generator
+    
+    { //building generate ai
+        ai_offset_update -= elapsed;        //update and timing
+        if (ai_offset_update < spawn_cd_min && buildings.size() < max_buildings) {
+            //update again in [min,max) seconds:
+            ai_offset_update = (mt() / float(mt.max())) * (spawn_cd_max + spawn_cd_min) + spawn_cd_min; //choose a random time to grow
+            ai_offset = (mt() / float(mt.max()) * 2.0f - 1.0f) * (scene_radius.x + buildings_width) * 0.5f;
+        
+            //bound buildings in the scene
+            buildings.push_back(glm::vec2(ai_offset, -scene_radius.y + grow_rate + 0.1f));
+            buildings_radius.push_back(glm::vec2(buildings_width, grow_rate));
+        }
+        
+        //ensure building number match
+        assert(buildings.size() == buildings_radius.size());
+    }
+    
+    //clamp cloud to scene:
+    cloud.x = std::max(cloud.x, -scene_radius.x + cloud_radius.x);
+    cloud.x = std::min(cloud.x,  scene_radius.x - cloud_radius.x);
     
     
+    //----- bullet update -----
+    if(bullet_fired){
+        //gravitational acceleration:
+        bullet += elapsed * bullet_velocity + 0.5f * gravity * elapsed * elapsed;     //displacement formula
+        bullet_velocity += gravity * elapsed;                                         //update velocity
+    }else{
+        //when not fired, move with cloud
+        bullet = cloud;
+        bullet_velocity = glm::vec2(0.0f, 0.0f);
+    }
     
     
+    //---- collision handling ----
+    
+    //buildings:
+    for(size_t i = 0; i < buildings.size(); i++){
+        //compute area of overlap:
+        glm::vec2 min = glm::max(buildings[i] - buildings_radius[i], bullet - bullet_radius);
+        glm::vec2 max = glm::min(buildings[i] + buildings_radius[i], bullet + bullet_radius);
+        
+        //if no overlap, no collision:
+        if (min.x > max.x || min.y > max.y) continue;
+        
+        if (max.x - min.x > max.y - min.y) {
+            //wider overlap in x => bounce in y direction:
+            if (bullet.y > buildings[i].y) {
+                bullet.y = buildings[i].y + buildings_radius[i].y + bullet_radius.y;
+                bullet_velocity.y = std::abs(bullet_velocity.y) * 0.5f;         //velocity drop in half
+            } else {
+                bullet.y = buildings[i].y - buildings_radius[i].y - bullet_radius.y;
+                bullet_velocity.y = -std::abs(bullet_velocity.y) * 0.5f;        //velocity drop in half
+            }
+            
+            //erase building
+            buildings.erase(buildings.begin() + i);
+            buildings_radius.erase(buildings_radius.begin() + i);
+            i--;
+        }else{
+            //wider overlap in y => bounce in x direction:
+            if (bullet.x > buildings[i].x) {
+                bullet.x = buildings[i].x + buildings_radius[i].x + bullet_radius.x;
+                bullet_velocity.x = std::abs(bullet_velocity.x) * 0.5f;
+            } else {
+                bullet.x = buildings[i].x - buildings_radius[i].x - bullet_radius.x;
+                bullet_velocity.x = -std::abs(bullet_velocity.x) * 0.5f;
+            }
+            //TODO: do i need this?
+            //warp y velocity based on offset from paddle center:
+            float vel = (bullet.y - buildings[i].y) / (buildings_radius[i].y + bullet_radius.y);
+            bullet_velocity.y = glm::mix(bullet_velocity.y, vel, 0.75f);
+            
+            //erase building
+            buildings.erase(buildings.begin() + i);
+            buildings_radius.erase(buildings_radius.begin() + i);
+            i--;
+        }
+        
+    }
     
     
+    //scene walls:
+    if(bullet_fired){
+        //TODO: may abandon this, never hit top wall
+        if (bullet.y > scene_radius.y - bullet_radius.y) {
+            bullet.y = scene_radius.y - bullet_radius.y;
+            if (bullet_velocity.y > 0.0f) {
+                bullet_velocity.y = -bullet_velocity.y;
+            }
+        }
+        if (bullet.y < -scene_radius.y + bullet_radius.y) {
+            bullet.y = -scene_radius.y + bullet_radius.y;
+            //bullet touch lower wall
+            if (bullet_velocity.y < 0.0f) {
+                //bullet reset state
+                bullet_velocity = glm::vec2(0.0f, 0.0f);
+                bullet = cloud;             //send back to cloud center
+                bullet_fired = false;       //reset fire state
+            }
+        }
+
+        if (bullet.x > scene_radius.x - bullet_radius.x) {
+            bullet.x = scene_radius.x - bullet_radius.x;
+            if (bullet_velocity.x > 0.0f) {
+                bullet_velocity.x = -bullet_velocity.x;
+            }
+        }
+        if (bullet.x < -scene_radius.x + bullet_radius.x) {
+            bullet.x = -scene_radius.x + bullet_radius.x;
+            if (bullet_velocity.x < 0.0f) {
+                bullet_velocity.x = -bullet_velocity.x;
+            }
+        }
+    }
+    
+    //----- building growth -----
+    if(grow_update > grow_cd){
+        grow_update = 0.0f;
+        for(size_t i = 0; i < buildings.size(); i++){
+            buildings_radius[i].y += grow_rate;
+            buildings[i].y += grow_rate;
+            
+            assert( buildings[i].y - buildings_radius[i].y >= -scene_radius.y);    //ensure attach lower wall
+        }
+    }else{
+        grow_update += elapsed;
+    }
     
     
     //----- gradient trails -----
-
+    
     //age up all locations in bullet trail:
     for (auto &t : bullet_trail) {
         t.z += elapsed;
@@ -160,7 +296,7 @@ void ZeusMode::update(float elapsed){
     
 }
 
-void Zeus::draw(glm::uvec2 const &drawable_size){
+void ZeusMode::draw(glm::uvec2 const &drawable_size){
     //TODO: need to select color for each game object
     
     //some nice colors from the course web page:
@@ -168,6 +304,8 @@ void Zeus::draw(glm::uvec2 const &drawable_size){
     const glm::u8vec4 bg_color = HEX_TO_U8VEC4(0x193b59ff);
     const glm::u8vec4 fg_color = HEX_TO_U8VEC4(0xf2d2b6ff);
     const glm::u8vec4 shadow_color = HEX_TO_U8VEC4(0xf2ad94ff);
+    const glm::u8vec4 bullet_color = HEX_TO_U8VEC4(0x00BE6100);
+    const glm::u8vec4 building_color = HEX_TO_U8VEC4(0x00707070);
     const std::vector< glm::u8vec4 > trail_colors = {
         HEX_TO_U8VEC4(0xf2ad9488),
         HEX_TO_U8VEC4(0xf2897288),
@@ -207,10 +345,9 @@ void Zeus::draw(glm::uvec2 const &drawable_size){
     draw_rectangle(glm::vec2( 0.0f, scene_radius.y+wall_radius)+s, glm::vec2(scene_radius.x, wall_radius), shadow_color);
     draw_rectangle(cloud+s, cloud_radius, shadow_color);                        //shadow for cloud
     draw_rectangle(bullet+s, bullet_radius, shadow_color);                      //shadow for bullet
+    
     for(size_t i = 0; i < buildings.size(); i++){
-        draw_rectangle(glm::vec2(buildings[i],scene_radius.y+)+s,
-                       glm::vec2(bulldings_width, bulldings_radius[i]),
-                       shadow_color);                                           //shadow for building, attach to lower wall
+        draw_rectangle(buildings[i], buildings_radius[i], shadow_color);   //shadow for building
     }
     
     //ball's trail:
@@ -270,13 +407,11 @@ void Zeus::draw(glm::uvec2 const &drawable_size){
     draw_rectangle(cloud, cloud_radius, fg_color);      //TODO: need to change this color
     
     //bullet:
-    draw_rectangle(bullet, bullet_radius, fg_color);    //TODO: need to change this color
+    draw_rectangle(bullet, bullet_radius, bullet_color);    //TODO: need to change this color
     
     //buildings:
     for(size_t i = 0; i < buildings.size(); i++){
-        draw_rectangle(glm::vec2(buildings[i], scene_radius.y),
-                       glm::vec2(bulldings_width, bulldings_radius[i]),
-                       fg_color);                                       //attach to lower wall
+        draw_rectangle(buildings[i], buildings_radius[i], building_color);
     }
     
     //TODO: do i need scores?

@@ -27,24 +27,40 @@ struct ZeusMode : Mode {
     //----- game state -----
     //TODO: fill in game object states, size, scores
     glm::vec2 scene_radius = glm::vec2(7.0f, 5.0f);             //size of the scene
-    glm::vec2 cloud_radius = glm::vec2(0.2f, 1.0f);             //size of Zeus' cloud
+    glm::vec2 cloud_radius = glm::vec2(1.0f, 0.2f);             //size of Zeus' cloud
     glm::vec2 bullet_radius = glm::vec2(0.2f, 0.2f);            //size of bullet
     
-    glm::vec2 cloud = glm::vec2(0.0f, scene_radius.y - 0.5f);   //position of cloud //TODO: check position of center
+    glm::vec2 cloud = glm::vec2(0.0f, scene_radius.y - 1.0f);   //position of cloud, center of rectangle
     
+    // TODO: need vector to store multiple bullets
+//    std::deque< glm::vec3 > bullets;                          //(x,y,age), bullet position 2d
+//    std::deque< glm::vec3 > bullet_velocity;                  //bullet velocity, static at beginning
     glm::vec2 bullet = glm::vec2(0.0f, cloud.y);                //bullet position 2d //TODO: place at center of cloud
+//    glm::vec3 bullet = glm::vec3(0.0f, cloud.y, 0.0f);        //(x,y,age)   //TODO: include age
     glm::vec2 bullet_velocity = glm::vec2(0.0f, 0.0f);          //bullet velocity, static at beginning
+    glm::vec2 gravity = glm::vec2(0.0f, -9.8f);                  //gravitational acceleration
+    float bullet_cd = 0.5f;                                     //bullet cool down  //TODO: may not need this
+    bool bullet_fired = false;                                  //bullet fire state
+    //TODO: may need to add bullet life
     
     uint32_t score = 0;
     
-    std::deque<float> buildings;                          //(center on x), buildings state, oldest first
-    std::deque<float> bulldings_height;                   //height of each building
-    float bulldings_width= 0.3f;                        //width of each building
+    std::vector< glm::vec2 > buildings;                          //buildings center
+    std::vector< glm::vec2 > buildings_radius;                   //size of each building
+    const float buildings_width = 1.0f;                     //fixed width of each building
+    const int max_buildings = 7;                            //max number of buildings
+    float grow_rate = 0.1f;                                 //building growing rate
+    float spawn_cd_min = 0.5f;                          //new building min spawn cool down
+    float spawn_cd_max = 2.0f;                          //new building max spawn cool down
+    float grow_cd = 1.0f;                               //building growing cool down
+    float grow_update = 0.0f;                           //update last grow time
     
+    float ai_offset = 0.0f;
+    float ai_offset_update = 0.0f;
     
     //----- pretty gradient trails -----
-    float trail_length = 1.3f;
-    std::deque< glm::vec3 > bullet_trail; //stores (x,y,age), oldest elements first
+    float trail_length = 0.8f;              //original: 1.3f, make shorter
+    std::deque< glm::vec3 > bullet_trail;   //stores (x,y,age), oldest elements first
     
     //----- opengl assets / helpers ------
     
@@ -70,7 +86,6 @@ struct ZeusMode : Mode {
     //Solid white texture:
     GLuint white_tex = 0;
 
-    //TODO: transform matrix, may not need
     //matrix that maps from clip coordinates to court-space coordinates:
     glm::mat3x2 clip_to_court = glm::mat3x2(1.0f);
     // computed in draw() as the inverse of OBJECT_TO_CLIP
