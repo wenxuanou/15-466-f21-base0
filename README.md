@@ -6,7 +6,7 @@ Design: You are Zeus who just lost a large amount of money in bitcoin, so you de
 
 Screen Shot:
 
-![Screen Shot](screenshot.png)
+![Screen Shot](myscreenshot.png)
 
 How To Play:
 
