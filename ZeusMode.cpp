@@ -194,6 +194,7 @@ void ZeusMode::update(float elapsed){
         //if no overlap, no collision:
         if (min.x > max.x || min.y > max.y) continue;
         
+        //TODO: add random x velocity when collision
         if (max.x - min.x > max.y - min.y) {
             //wider overlap in x => bounce in y direction:
             if (bullet.y > buildings[i].y) {
