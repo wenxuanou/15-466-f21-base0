@@ -59,7 +59,7 @@ struct ZeusMode : Mode {
     float ai_offset_update = 0.0f;
     
     //----- pretty gradient trails -----
-    float trail_length = 0.8f;              //original: 1.3f, make shorter
+    float trail_length = 0.2f;              //original: 1.3f, make shorter
     std::deque< glm::vec3 > bullet_trail;   //stores (x,y,age), oldest elements first
     
     //----- opengl assets / helpers ------
