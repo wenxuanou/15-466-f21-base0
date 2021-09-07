@@ -306,7 +306,7 @@ void ZeusMode::draw(glm::uvec2 const &drawable_size){
     const glm::u8vec4 fg_color = HEX_TO_U8VEC4(0xf2d2b6ff);
     const glm::u8vec4 shadow_color = HEX_TO_U8VEC4(0xf2ad94ff);
     const glm::u8vec4 bullet_color = HEX_TO_U8VEC4(0xBE6100ff);
-    const glm::u8vec4 building_color = HEX_TO_U8VEC4(0x70707070);
+    const glm::u8vec4 building_color = HEX_TO_U8VEC4(0x00707070);
     const std::vector< glm::u8vec4 > trail_colors = {
         HEX_TO_U8VEC4(0xf2ad9488),
         HEX_TO_U8VEC4(0xf2897288),

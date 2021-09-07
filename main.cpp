@@ -1,9 +1,6 @@
 //Mode.hpp declares the "Mode::current" static member variable, which is used to decide where event-handling, updating, and drawing events go:
 #include "Mode.hpp"
 
-//The 'PongMode' mode plays the game:
-#include "PongMode.hpp"
-
 //My own game mode:
 #include "ZeusMode.hpp"
 
