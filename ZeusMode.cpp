@@ -205,6 +205,9 @@ void ZeusMode::update(float elapsed){
                 bullet_velocity.y = -std::abs(bullet_velocity.y) * 0.5f;        //velocity drop in half
             }
             
+            float rand_x = (mt() / float(mt.max()) * 2.0f - 1.0f) * 0.5f;        //random x velocity
+            bullet_velocity.x += rand_x;
+            
             //erase building
             buildings.erase(buildings.begin() + i);
             buildings_radius.erase(buildings_radius.begin() + i);
